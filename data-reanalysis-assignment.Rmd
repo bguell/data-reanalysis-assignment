@@ -1,50 +1,57 @@
 ---
-title: "data-reanalysis-assignment"
+title: "Data Reanalysis Assignment"
 author: "Brandon Güell"
 date: "10/20/2017"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_levels: 4
 ---
-#Data Reanalysis Assignment
+# Project Overview
 
-The original study (Gomez-Mestre I, Warkentin KM. 2007. To hatch and hatch not: Similar selective trade-offs but different responses to egg predators in two closely related, syntopic treefrogs. Oecologia 153:197–206.) examined differences in selective trade-offs and responses to predation in two closely related and syntopic treefrog species: Agalychnis callidryas and A. spurrelli. The study performed field surveys to collect data on natural spontaneous hatching timings and natural predation on egg clutches of the two species. Authors also performed predation experiments using snakes for predation on eggs and fish for predation on hatchlings.
+The original [study](https://github.com/bguell/data-reanalysis-assignment/blob/master/Gomez-Mestre%2C%20Warkentin_2007.pdf) examined differences in selective trade-offs and responses to predation in two closely related and syntopic treefrog species: *Agalychnis callidryas* and *A. spurrelli*. The study performed field surveys to collect data on natural spontaneous hatching timings and natural predation on egg clutches of the two species. Authors also performed predation experiments using snakes for predation on eggs and fish for predation on hatchlings.
 
-Their specific null hypotheses were outlined explicitly, "(1) both species experience similar levels of egg predation; (2) they have the same pattern of undisturbed or spontaneous hatching; (3) their escape hatching responses to snake attack and flooding are similar; and (4) early hatching increases vulnerability to aquatic predators in A. spurrelli, as it does in A. callidryas."
+Their specific null hypotheses were outlined explicitly, "**(1)** both species experience similar levels of egg predation; **(2)** they have the same pattern of undisturbed or spontaneous hatching; **(3)** their escape hatching responses to snake attack and flooding are similar; and **(4)** early hatching increases vulnerability to aquatic predators in *A. spurrelli*, as it does in *A. callidryas*."
 
 This paper used multiple data sets from various authors. All data was collected in the field, but in different years and by different authors. They performed a suite of statistical analysis, but the main ones were as follows:
 
-A) "The overall proportion of monitored clutches predated in the field, escape hatching success in snake predation experiments, and proportion of hatchlings surviving Wsh predation were all analysed using generalized linear models with an underlying binomial distribution and a logit link function in PROC GENMOD."
+1. "The overall proportion of monitored clutches predated in the field, escape hatching success in snake predation experiments, and proportion of hatchlings surviving Wsh predation were all analysed using generalized linear models with an underlying binomial distribution and a logit link function in PROC GENMOD."
 
-B) "We performed a log-linear analysis of the number of clutches of each species that were predated and undisturbed on each of 16 nights when both were present. Model parameters were estimated through maximum likelihood using PROC CATMOD, assuming an underlying Poisson distribution."
+2. "We performed a log-linear analysis of the number of clutches of each species that were predated and undisturbed on each of 16 nights when both were present. Model parameters were estimated through maximum likelihood using PROC CATMOD, assuming an underlying Poisson distribution."
 
-C) "We tested for effects of embryo development on escape success in snake attacks using generalized linear models."
+3. "We tested for effects of embryo development on escape success in snake attacks using generalized linear models."
 
-D) "The hatching response of A. spurrelli to underwater submergence was tested against its unflooded controls by Wtting a Cox regression model using PROC PHREG"
+4. "The hatching response of *A. spurrelli* to underwater submergence was tested against its unflooded controls by Wtting a Cox regression model using PROC PHREG"
 
-E) "The effects of hatching age on the proportion of hatchlings surviving in the fish predation experiments was analysed with a generalized linear model, including fish size as a covariate."
+5. "The effects of hatching age on the proportion of hatchlings surviving in the fish predation experiments was analysed with a generalized linear model, including fish size as a covariate."
 
-I will be reanalyzing data for which I gathered the original data set for. I will reproduce analysis for:
+> Note: I will be reanalyzing data for data sets which I was able to obtain. I will reproduce analysis for the following:
 
-1) A: GLMs on field predation observations, snake predation experiments, and fish predation experiments; including the corresponding data manipulation, data summarization and descriptive statistical analysis, and visualization of each.
+1. GLMs on field predation observations, snake predation experiments, and fish predation experiments; including the corresponding data manipulation, data summarization and descriptive statistical analysis, and visualization of each.
 
-2) C: GLM to test for effects of age on escape success
+2. GLM to test for effects of age on escape success
 
-3) E: GLM to test for effects of age and fish size on hatchling survival
+3. GLM to test for effects of age and fish size on hatchling survival
 
-So lets get started!
+**So lets get started!**
 
-First we'll load several cvs files from the web for hte different chapters of this reanalysis project! Here's the first!
+## Field Surveys of Undisturbed Clutches
+
+### Read in data file
+First we'll load *several cvs files* from the web for the different chapters of this reanalysis project! Here's the first!
 ```{r}
 library(curl) #load necessary package for uploading data from Github
 
 f <- curl("https://raw.githubusercontent.com/bguell/data-reanalysis-assignment/master/undisturbed%20raw.csv") #read in csv file from Github
 d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 head(d) #see data and column names
-d
 
 ```
-Now that the raw data for field surveys of undisturbed clutches are loaded, lets begin with some basic data summarization which are also found in the paper.
 
-First, lets look at some basic summary statistics of clutch size for both species. We'll need to find the mean, standard deviations, and range of the clutch sizes for each:
+### Data summary statistics
+
+Now that the raw data for field surveys of undisturbed clutches are loaded, lets begin with some basic data summarization which are also found in the paper. First, lets look at some basic summary statistics of clutch size for both species. We'll need to find the **mean**, **standard deviations**, and **range** of the clutch sizes for each species:
 ```{r}
 #lets start with callidryas:
 range(d$number_of_eggs[d$species=="callidryas"]) #find range of number of eggs subsetting for only callidryas species
@@ -68,9 +75,14 @@ d %>% summarise(mean= mean(number_of_eggs), SD= sd(number_of_eggs)) # mean of pr
 range(d$number_of_eggs[d$species=="spurrelli"]) #find range of number of eggs subsetting for only callidryas species
 
 ```
-Next, lets look at the overall proportion of predated clutches for each species and compare them using a test of equal proportions:
+
+### Proportion of predated clutches
+Next, lets look at the **overall proportion of predated clutches** for each species and compare them using a *test of equal proportions*:
+
+> Note: since the data frame I obtained doesn't have info about the total number of observed clutches, we need to calculate the total N for each species. We can "back calculate" this since we know the proportion of predated clutches for each species from the data reported in the paper, **0.40** and **0.48** for *callidryas* and *spurrelli* respectively.
+
 ```{r}
-#so, since the data sheet I was given doesn't have info about the total number of observed clutches, we need to calculate the total N for each species. We can back calculate this since we know the proportion of predated clutches for each species from the data reported in the paper, 0.40 nad 0.48 for callidryas and spurrelli respectively.
+
 length(d$species[d$species=="callidryas"]) #number of predated clutches for callidryas
 Ncalidryas= 182 *.40
 Ncalidryas
@@ -83,28 +95,27 @@ Nspurrelli
 prop.test(x=c(73,9), n=c(182,19)) #clearly the proportions predated for each species were not significaly different from each other
 ```
 
-Next let's make some figures to visualize this data! We'll first need to seriously wrangle this data since there are multiple colums for observations which should be in just one... lets use dplyr and tidyr!!! yay data clean up time!
+### Data wrangling time!
+Next let's make some **figures to visualize** this data! We'll first need to *seriously wrangle* this data since there are multiple colums for observations which should be in just one... lets use dplyr and tidyr!!! yay data clean up time!
 ```{r}
 library(dplyr)
+library(tidyr)
 d= select(d, 1:16) #only need to plot days 4-9
 dd=gather(data = d, day, prop_hatch, D4.am:D9.pm, -year, -species, -clutch, -number_of_eggs) # accumulate all observations into one column named prop_hatch
-dd
-
+head(dd)
 str(dd) #thats more like it! great!
 
 #but lets separate the Day # from the am and pm if we can...
 dd = separate(dd, day, c("day", "time_of_day"))
-dd
+head(dd)
 str(dd) #wow fuck yes! that worked so freaking well! yay me!
 
-```
 
-```{r}
 #now lets get species specific data so we can plot these as separate figures by species
 ddc = filter(dd, species =="callidryas")
-ddc
+head(ddc)
 dds = filter(dd, species == "spurrelli")
-dds
+head(dds)
 ```
 
 Now lets get some summary statistics to actually plot!
@@ -133,6 +144,8 @@ mphs
 
 
 ```
+
+### Figures yay PLOT PLOT PLOT!
 Excellent! Now lets go ahead and plot those to see what it looks like!
 ```{r}
 library(ggplot2)
@@ -142,6 +155,7 @@ gc= gc + geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, posi
 gc= gc + labs(x= "Age (days)", y= "Sponanteous hatching (proportion hatched eggs)") #make labels for axis
 gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
 gc= gc + annotate("text", x = 2, y = 0.5, label = "(b) A. callidryas", fontface= "italic") #add italicized text to figure!
+gc= gc + scale_fill_manual(values = c("blue", "black")) # change "fills" to blue for day and black for night
 gc
 
 #and again same for spurrelli
@@ -150,47 +164,43 @@ gs= gs + geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, posi
 gs= gs + labs(x= "Age (days)", y= "Sponanteous hatching (proportion hatched eggs)") 
 gs= gs + theme_bw(base_size = 11, base_family = "Times")
 gs= gs + annotate("text", x = 2, y = 0.5, label = "(a) A. spurrelli", fontface= "italic")
+gs= gs + scale_fill_manual(values = c("blue", "black"))
 gs
 ```
 
 Just for fun, we could try putting on same plot somehow? maybe something like this? But Illustrator is best for these type of things!
 ```{r}
+library(grid)
 grid.newpage()
 grid.draw(rbind(ggplotGrob(gs), ggplotGrob(gc), size = "last"))
+# not too sure how to clean up the axis titles on this multiplot, but it gets the job done well enough...
 ```
 
+We can take a look at the original figure and see how much better the R made one is! Better colors, better legends, and more information about the x axis. But overall, they are the same figures.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+![](undisturbed hatching proportion.png)
 
 
 **********
+# Predation Experiments
+
+## Read in data file
 Next let's load the data for the predation experiments!
 ```{r}
 f <- curl("https://raw.githubusercontent.com/bguell/data-reanalysis-assignment/master/predation%20experiments.csv") #read in csv file from Github
 d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
 head(d) #see data and column names
+```
+This dataset is a compilation of the snake and fish predation experiments! We'll have to subset data in order to only run models on each experiment and the predictors we chosse.Lets start with the snake predation experiment and data.
 
-#so this is a compilation of the snake and fish predation experiments! We'll have to subset data in order to only run models on each experiment and the predictors we chosse.
-
-#Lets start with the snake predation experiment and data:
+### Snake predation experiments
+```{r}
 library(lme4) #require package to fun GLMM
 library(car) #require package to allow for Anova on GLMM and effects of predictors
 library(dplyr)
 ```
 
-Interactive effect of age and species
+#### Interactive effect of age and species
 ```{r}
 #lets filter out only observations for snake predation experiments
 dt = filter(d, predation_type =="snake")
@@ -201,7 +211,7 @@ summary(m)
 Anova(m)
 ```
 
-Effect of age on callidryas escape success:
+#### Effect of age on callidryas escape success:
 ```{r}
 
 dc = filter(d, predation_type =="snake")
@@ -213,7 +223,7 @@ Anova(m)
 
 ```
 
-Effect of age on spurrelli escape success:
+#### Effect of age on spurrelli escape success:
 ```{r}
 ds = filter(d, predation_type =="snake")
 ds = filter(d, species=="spurrelli")
