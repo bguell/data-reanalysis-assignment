@@ -66,28 +66,19 @@ head(d) #see data and column names
 
 Now that the raw data for field surveys of undisturbed clutches are loaded, lets begin with some basic data summarization which are also found in the paper. First, lets look at some basic summary statistics of clutch size for both species. We'll need to find the **mean**, **standard deviations**, and **range** of the clutch sizes for each species:
 ```{r}
-#lets start with callidryas:
-range(d$number_of_eggs[d$species=="callidryas"]) #find range of number of eggs subsetting for only callidryas species
-mean(d$number_of_eggs[d$species=="callidryas"]) #find the mean of number of eggs
-sd(d$number_of_eggs[d$species=="callidryas"]) #find the standard deviation of number of eggs
-
-#or using dplyr for 2 out of 3 summaries:
+# using dplyr:
 library(dplyr)
-d %>% summarise(mean= mean(number_of_eggs), SD= sd(number_of_eggs)) # mean of prop_hatch by day!
-#then the range separately
-range(d$number_of_eggs[d$species=="callidryas"]) #find range of number of eggs subsetting for only callidryas species
+dd = d %>% 
+  group_by(species) %>%
+  summarise(mean= mean(number_of_eggs), SD= sd(number_of_eggs), min= min(number_of_eggs), max= max(number_of_eggs)) # mean of prop_hatch by day!
+dd
 
-#and the same for spurrelli:
-range(d$number_of_eggs[d$species=="spurrelli"]) #find range of number of eggs for only callidryas species
-mean(d$number_of_eggs[d$species=="spurrelli"]) #find the mean of number of eggs
-sd(d$number_of_eggs[d$species=="spurrelli"]) #find the standard deviation of number of eggs
-
-#or using dplyr for 2 out of 3 summaries:
-d %>% summarise(mean= mean(number_of_eggs), SD= sd(number_of_eggs)) # mean of prop_hatch by day!
-#then the range separately
-range(d$number_of_eggs[d$species=="spurrelli"]) #find range of number of eggs subsetting for only callidryas species
-
+library(stargazer)
+library(knitr)
+kable(dd,title="Mean, SD, & Range for frog species",digits=3)
 ```
+
+Here we can easily obtain the mean, standard deviation, and range of clutch sizes for each species! Woohoo
 
 ## Proportion of predated clutches
 Next, lets look at the **overall proportion of predated clutches** for each species and compare them using a *test of equal proportions*:
@@ -96,17 +87,40 @@ Next, lets look at the **overall proportion of predated clutches** for each spec
 
 ```{r}
 
-length(d$species[d$species=="callidryas"]) #number of predated clutches for callidryas
+lc=length(d$species[d$species=="callidryas"]) #number of predated clutches for callidryas
+lc
 Ncalidryas= 182 *.40
 Ncalidryas
 
-length(d$species[d$species=="spurrelli"]) #number of predated clutches for spurrelli
+ls=length(d$species[d$species=="spurrelli"]) #number of predated clutches for spurrelli
+ls
 Nspurrelli= 19 *.48
 Nspurrelli
-
-#then incorporating these numbers into a two sample proportion test:
-prop.test(x=c(73,9), n=c(182,19)) #clearly the proportions predated for each species were not significaly different from each other
 ```
+
+And now lets make a small table of these results:
+```{r}
+ll= data_frame(c(lc, ls), c(Ncalidryas, Nspurrelli)) 
+x= c("Predated Clutches", "Sample Size")
+colnames(ll) = x
+ll
+ll= ll %>%
+  mutate(Species = c("Callidryas", "Spurrelli")) %>%
+  select(Species, `Predated Clutches`, `Sample Size`)
+ll
+
+library(stargazer)
+kable(ll,title="Mean, SD, & Range for frog species",digits=3)
+```
+
+We can now incorporate these numbers into a two sample proportion test:
+
+```{r}
+prop.test(x=c(73,9), n=c(182,19))
+```
+Clearly the proportions predated for each species were not significaly different from each other. When we compare this to the original data reported; "The overall proportion of predated clutches was high for
+both species, and not signiWcantly diverent (0.40 and 0.48 for
+A. spurrelli and A. callidryas, respectively; X^2^(1,3662) = 0.09, P = 0.76)." As we can see, our chi-squared vaslues are abit off and our p-values as well, but they both analysis show similar results. These differences are likely due to underlying corrections and other methods which differ between the proportion tests which we used. In addition, it probably has something to due with the the fact that we derived the data to analyze (because it was not given in our data aquisiion), while the original authors used raw data.
 
 ## Data wrangling time!
 
@@ -167,7 +181,7 @@ library(ggplot2)
 
 gc= ggplot(data=mphc, aes(x=day_time, y=mean_prop)) + geom_bar(stat="identity", aes(fill=time_of_day)) #use barplots w/time of day filled w/color
 gc= gc + geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, position=position_dodge(.9), color="black") #add black error bars
-gc= gc + labs(x= "Age (days)", y= "Sponanteous hatching (proportion hatched eggs)") #make labels for axis
+gc= gc + labs(x= "Age (days)", y= "Sponanteous hatching \n (proportion hatched eggs)") #make labels for axis
 gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
 gc= gc + annotate("text", x = 2, y = 0.5, label = "(b) A. callidryas", fontface= "italic") #add italicized text to figure!
 gc= gc + scale_fill_manual(values = c("blue", "black")) # change "fills" to blue for day and black for night
@@ -176,19 +190,19 @@ gc
 #and again same for spurrelli
 gs= ggplot(data=mphs, aes(x=day_time, y=mean_prop)) + geom_bar(stat="identity", aes(fill=time_of_day))
 gs= gs + geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, position=position_dodge(.9), color="black") 
-gs= gs + labs(x= "Age (days)", y= "Sponanteous hatching (proportion hatched eggs)") 
+gs= gs + labs(x= "Age (days)", y= "Sponanteous hatching \n (proportion hatched eggs)") #break up the title into two rows using "\n"
 gs= gs + theme_bw(base_size = 11, base_family = "Times")
 gs= gs + annotate("text", x = 2, y = 0.5, label = "(a) A. spurrelli", fontface= "italic")
 gs= gs + scale_fill_manual(values = c("blue", "black"))
 gs
 ```
 
-Just for fun, we could try putting on same plot somehow? maybe something like this? But Illustrator is best for these type of things!
+Just for fun, we could try putting on same plot somehow? maybe something like this?
 ```{r}
 library(grid)
 grid.newpage()
 grid.draw(rbind(ggplotGrob(gs), ggplotGrob(gc), size = "last"))
-# not too sure how to clean up the axis titles on this multiplot, but it gets the job done well enough...
+# Breaking up the title sure seemed to help! looks a lot better now! YAY :)
 ```
 
 We can take a look at the original figure and see how much better the R made one is! Better colors, better legends, and more information about the x axis. But overall, they are the same figures.
@@ -228,9 +242,18 @@ dt = filter(d, predation_type =="snake")
 head(dt)
 
 m=glm(survival_prop~age*species, family = "binomial", weights = initial, data = dt) # glm for escape success with age and species interaction. Binomail distrubition using proportions escaped as response with initial number of trials as weights.
+m
 summary(m)
 Anova(m) #allows for summary of main effects of age, species, and their interaction
 ```
+Firstly, we see that we get an "error" becasue we are running **proportion data** through a *binomial* GLM instead of using a beta regression. However, the "weights" arguments allows us to use proportion data as long as we have the inital number of trials of which we got the proportion from. In addidion, this is a replication of how the authors did hte analysis in the original study, and in my reading of literature in our field, this practice is very common.
+
+Let's compare our results with the original reported anaysis. Both our reanalysis and the authors' original analysis found a significant species x age interaction:
+
+* **Original results**; "(X^2^(1,59) = 15.50, P < 0.0001; Fig. 2)" 
+* **Our results**; "(X^2^= 57.508, P < 3.366e-14)
+
+Here, although our summary statistic is off (likely due to method of p-value extraction), we see that our results corroboate the interpretation of the authors. We see in the figures below that escape success in snake predation experiments increased more between 5 and 6 days (the modal hatching age) in *A. spurrelli* than it did between 7 and 8 days (the modal hatching age) in *A. callidryas*.
 
 ### Effect of age on *A. callidryas* escape success:
 ```{r}
@@ -243,6 +266,12 @@ summary(m)
 Anova(m) # main effect of age on escape hatching
 
 ```
+Let's compare our results with the original reported anaysis. Both our reanalysis and the authors' original analysis found a significant effect of age on escape success in *A. callidryas*:
+
+* **Original results**; "(X^2^(3,44) = 25.22, P < 0.0001)" 
+* **Our results**; (X^2^= 57.712, P < 6.427e-13)
+
+Similarly as before, here we see that our Chi-squared values are off, but we end up with very conclusive results which align with what the authors originally found. We interpret these results as showing that escape success in *A. callidryas* increased with age/development.
 
 ### Effect of age on *A. spurrelli* escape success:
 ```{r}
@@ -253,6 +282,12 @@ m=glm(survival_prop~age, family = "binomial", weights = initial, data = ds)
 summary(m)
 Anova(m) # main effect of age on escape hatching
 ```
+Let's compare our results with the original reported anaysis. Both our reanalysis and the authors' original analysis found a significant effect of age on escape success in *A. spurrelli*:
+
+* **Original results**; "X^2^(1,12) = 12.56, P = 0.0004)" 
+* **Our results**; (X^2^= 136.47, P < 2.2e-16)
+
+Once again we see different Chi-squared values but robust and convincing interpretable results. We find that escape success in *A. spurrlli* increased with age/development, just as the original paper also conlcudes from these analysis.
 
 ### Visualization! Figure PLOT PLOT PLOT!
 ```{r}
@@ -276,7 +311,7 @@ library(ggplot2)
 
 gc= ggplot(data=spc, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black") #use barplots w/age filled all black
 gc= gc + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") #black error bars
-gc= gc + labs(x= "Age (days)", y= "Escape hatching success (proportion hatched eggs)") #make labels for axis
+gc= gc + labs(x= "Age (days)", y= "Escape hatching success \n (proportion hatched eggs)") #make labels for axis
 gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
 gc= gc + annotate("text", x = 4.8, y = 1, label = "(b) A. callidryas", fontface= "italic") #add italicized text (species name) to figure!
 gc= gc + scale_y_continuous(breaks= pretty_breaks(n=5)) # allows for making "pretty" breaks on y axis... shows 5 breaks
@@ -286,7 +321,7 @@ gc
 #and again same for spurrelli
 gs= ggplot(data=sps, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black")
 gs= gs + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") 
-gs= gs + labs(x= "Age (days)", y= "Escape hatching success (proportion hatched eggs)") 
+gs= gs + labs(x= "Age (days)", y= "Escape hatching success \n (proportion hatched eggs)") 
 gs= gs + theme_bw(base_size = 11, base_family = "Times")
 gs= gs + annotate("text", x = 3.65, y = 1, label = "(a) A. spurrelli", fontface= "italic")
 gs= gs + scale_x_continuous(breaks= pretty_breaks(n=2)) # allows for making "pretty" breaks on x axis... only showing 4 and 5 values...
@@ -327,8 +362,18 @@ head(dfs)
 
 m=glm(data = dfs, survival_prop ~ age + fish.size , family = "binomial", weights = initial) # glm for spurrelli escape success with age and fish size as covariates. Binomail distrubition using proportions escaped as response with initial number of trials as weights.
 summary(m)
-Anova(m) #allows for summary of main effects of age, species, and their interaction
+Anova(m)
 ```
+
+> Remeber this is the only data that the authors report in this paper. They report only the effect of age on *A. spurrelli* escape success
+
+When we compare our resluts with what they authors reported, we find very very comprable analysis;
+
+* **Original results**; "X^2^(1,9) = 23.08, P < 0.0001)" 
+* **Our results**; (X^2^(1,9)= 15.428, P = 8.573e-05)
+
+It is likely that we are obtaining p-values in a different manner than the authors did. For instance, they could be using likelihood ratio tests, while we are using the Anova() function to get quick and easy access to p-values by running type II ANOVA's on our models. Regardless, we see that the data can be interpreted the same. If you look at the figures below, you can see that younger *A. spurrelli* hatchlings were more susceptible to predation that older ones.
+
 
 ### Effect of age and fish size on *A. callidryas* escape success
 ```{r}
@@ -341,8 +386,11 @@ head(dfc)
 
 m=glm(data = dfc, survival_prop ~ age + fish.size , family = "binomial", weights = initial) # glm for callidryas escape success with age and fish size as covariates. Binomail distrubition using proportions escaped as response with initial number of trials as weights.
 summary(m)
-
+Anova(m)
 ```
+The authors made no analysis of this, so this is extra. But the results corroborate what the figures later show us. Older *A. callidryas* embryos are also more vulnerable to fish predation, though there is more of a gradual increase in survivorship. This may also be due to the fact that we have more ages from which to observe these type of trends compared to only having 2 ages in *A. spurrelli*.
+
+* **Our results**; (X^2^= 15.737, P = 7.277e-05)
 
 ### Interactive effect of age and species including fish size on escape success
 
@@ -355,6 +403,10 @@ m=glm(data = df, survival_prop ~ age*species + fish.size , family = "binomial", 
 summary(m)
 Anova(m) #allows for summary of main effects of age, species, and their interaction
 ```
+Again, this analysis was "for fun". We see that there is a main effect of age, species, and age x species interaction. This is unsurprising since we already saw that age affects both species in indpendent models, but does so differently. 
+
+In *A. spurrelli*, there is a huge difference between the two ages and their survivorship. However, in *A. callidryas*, we see that ages 7, 8, and 9 are not so different from each other, but as a whole, much more different than age 6. We *could* use a post hoc test on this model to parse out these differences, but we won't since the authors failed to incorporate this into their analysis. Moreover, the error bars on the figuers below help to demonstrate these trendsand relationships clearly enough, for this anyway...
+
 
 ### Visualization! Figure PLOT PLOT PLOT!
 Finally, lets wrap up this section by visualizing this data of both species!
@@ -378,7 +430,7 @@ library(ggplot2)
 
 gc= ggplot(data=fpc, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black") #use barplots w/age filled all black
 gc= gc + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") #black error bars
-gc= gc + labs(x= "Age (days)", y= "Hatching survival (proportion)") #make labels for axis
+gc= gc + labs(x= "Age (days)", y= "Hatching survival \n (proportion)") #make labels for axis
 gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
 gc= gc + annotate("text", x = 4.8, y = 0.80, label = "(b) A. callidryas", fontface= "italic") #add italicized text (species name) to figure!
 gc= gc + scale_y_continuous(breaks= pretty_breaks(n=5)) # allows for making "pretty" breaks on y axis... shows 5 breaks
@@ -388,7 +440,7 @@ gc
 #and again same for spurrelli
 gs= ggplot(data=fps, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black")
 gs= gs + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") 
-gs= gs + labs(x= "Age (days)", y= "Hatching survival (proportion)") 
+gs= gs + labs(x= "Age (days)", y= "Hatching survival \n (proportion)") 
 gs= gs + theme_bw(base_size = 11, base_family = "Times")
 gs= gs + annotate("text", x = 5.65, y = 0.80, label = "(a) A. spurrelli", fontface= "italic")
 gs= gs + scale_x_continuous(breaks= pretty_breaks(n=2)) # allows for making "pretty" breaks on x axis... only showing 4 and 5 values...
