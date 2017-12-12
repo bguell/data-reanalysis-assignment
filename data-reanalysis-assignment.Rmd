@@ -12,7 +12,7 @@ output:
 
 ![](img/RETF 1.png) 
 
-The original [study](https://github.com/bguell/data-reanalysis-assignment/blob/master/Gomez-Mestre%2C%20Warkentin_2007.pdf) examined differences in selective trade-offs and responses to predation in two closely related and syntopic treefrog species: *Agalychnis callidryas* and *A. spurrelli*. The study performed field surveys to collect data on natural spontaneous hatching timings and natural predation on egg clutches of the two species. Authors also performed predation experiments using snakes for predation on eggs and fish for predation on hatchlings.
+The original [study](https://github.com/bguell/data-reanalysis-assignment/blob/master/Gomez-Mestre%2C%20Warkentin_2007.pdf) I have chosen to replicate examined differences in selective trade-offs and responses to predation in two closely related and syntopic treefrog species: *Agalychnis callidryas* and *A. spurrelli*. The authors performed field surveys to collect data on natural spontaneous hatching timings and natural predation on egg clutches of the two species. Authors also performed predation experiments using snakes for predation on eggs and fish for predation on hatchlings.
 
 Their specific null hypotheses were outlined explicitly, "**(1)** both species experience similar levels of egg predation; **(2)** they have the same pattern of undisturbed or spontaneous hatching; **(3)** their escape hatching responses to snake attack and flooding are similar; and **(4)** early hatching increases vulnerability to aquatic predators in *A. spurrelli*, as it does in *A. callidryas*."
 
@@ -110,7 +110,7 @@ ll= ll %>%
 ll
 
 library(stargazer)
-kable(ll,title="Mean, SD, & Range for frog species",digits=3)
+kable(ll,title="Number of predated cluthces and sample sizes",digits=3)
 ```
 
 We can now incorporate these numbers into a two sample proportion test:
@@ -136,7 +136,7 @@ str(dd) #thats more like it! great!
 #but lets separate the Day # from the am and pm if we can...
 dd = separate(dd, day, c("day", "time_of_day"))
 head(dd)
-str(dd) #wow fuck yes! that worked so freaking well! yay me!
+str(dd) #wow yay! that worked so well! yay me!
 
 
 #now lets get species specific data so we can plot these as separate figures by species
@@ -179,21 +179,25 @@ Excellent! Now lets go ahead and plot those to see what it looks like!
 ```{r}
 library(ggplot2)
 
-gc= ggplot(data=mphc, aes(x=day_time, y=mean_prop)) + geom_bar(stat="identity", aes(fill=time_of_day)) #use barplots w/time of day filled w/color
-gc= gc + geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, position=position_dodge(.9), color="black") #add black error bars
-gc= gc + labs(x= "Age (days)", y= "Sponanteous hatching \n (proportion hatched eggs)") #make labels for axis
-gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
-gc= gc + annotate("text", x = 2, y = 0.5, label = "(b) A. callidryas", fontface= "italic") #add italicized text to figure!
-gc= gc + scale_fill_manual(values = c("blue", "black")) # change "fills" to blue for day and black for night
+legend_title= "Time of day"
+
+gc= ggplot(data=mphc, aes(x=day_time, y=mean_prop)) + 
+  geom_bar(stat="identity", aes(fill=time_of_day)) + #use barplots w/time of day filled w/color
+  geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, position=position_dodge(.9), color="black") + #add black error bars
+  labs(x= "Age (days)", y= "Sponanteous hatching \n (proportion hatched eggs)") + #make labels for axis
+  theme_bw(base_size = 11, base_family = "Times") + #make theme in Times New Roman and b/w
+  annotate("text", x = 2, y = 0.5, label = "(b) A. callidryas", fontface= "italic") + #add italicized text to figure!
+  scale_fill_manual(legend_title, values = c("blue", "black")) # change "fills" to blue for day and black for night
 gc
 
 #and again same for spurrelli
-gs= ggplot(data=mphs, aes(x=day_time, y=mean_prop)) + geom_bar(stat="identity", aes(fill=time_of_day))
-gs= gs + geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, position=position_dodge(.9), color="black") 
-gs= gs + labs(x= "Age (days)", y= "Sponanteous hatching \n (proportion hatched eggs)") #break up the title into two rows using "\n"
-gs= gs + theme_bw(base_size = 11, base_family = "Times")
-gs= gs + annotate("text", x = 2, y = 0.5, label = "(a) A. spurrelli", fontface= "italic")
-gs= gs + scale_fill_manual(values = c("blue", "black"))
+gs= ggplot(data=mphs, aes(x=day_time, y=mean_prop)) + 
+  geom_bar(stat="identity", aes(fill=time_of_day)) +
+  geom_errorbar(aes(ymin=mean_prop-SE, ymax=mean_prop+SE), width=.2, position=position_dodge(.9), color="black") +
+  labs(x= "Age (days)", y= "Sponanteous hatching \n (proportion hatched eggs)") + #break up the title into two rows using "\n"
+  theme_bw(base_size = 11, base_family = "Times") +
+  annotate("text", x = 2, y = 0.5, label = "(a) A. spurrelli", fontface= "italic") +
+  scale_fill_manual(legend_title, values = c("blue", "black"))
 gs
 ```
 
@@ -257,14 +261,12 @@ Here, although our summary statistic is off (likely due to method of p-value ext
 
 ### Effect of age on *A. callidryas* escape success:
 ```{r}
-
 dc = filter(d, predation_type =="snake")
 dc = filter(dc, species=="callidryas")
 head(dc)
 m=glm(survival_prop~age, family = "binomial", weights = initial, data = dc)
 summary(m)
 Anova(m) # main effect of age on escape hatching
-
 ```
 Let's compare our results with the original reported anaysis. Both our reanalysis and the authors' original analysis found a significant effect of age on escape success in *A. callidryas*:
 
@@ -309,24 +311,26 @@ sps
 library(scales)
 library(ggplot2)
 
-gc= ggplot(data=spc, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black") #use barplots w/age filled all black
-gc= gc + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") #black error bars
-gc= gc + labs(x= "Age (days)", y= "Escape hatching success \n (proportion hatched eggs)") #make labels for axis
-gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
-gc= gc + annotate("text", x = 4.8, y = 1, label = "(b) A. callidryas", fontface= "italic") #add italicized text (species name) to figure!
-gc= gc + scale_y_continuous(breaks= pretty_breaks(n=5)) # allows for making "pretty" breaks on y axis... shows 5 breaks
-gc= gc + geom_text(aes(y = 0.03, label = spc$sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
+gc= ggplot(data=spc, aes(x=age, y=mean_survival)) +
+  geom_bar(stat="identity", fill= "black") + #use barplots w/age filled all black
+  geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") + #black error bars
+  labs(x= "Age (days)", y= "Escape hatching success \n (proportion hatched eggs)") + #make labels for axis
+  theme_bw(base_size = 11, base_family = "Times") + #make theme in Times New Roman and b/w
+  annotate("text", x = 4.8, y = 1, label = "(b) A. callidryas", fontface= "italic") + #add italicized text (species name) to figure!
+  scale_y_continuous(breaks= pretty_breaks(n=5)) + # allows for making "pretty" breaks on y axis... shows 5 breaks
+  geom_text(aes(y = 0.03, label = spc$sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
 gc
 
 #and again same for spurrelli
-gs= ggplot(data=sps, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black")
-gs= gs + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") 
-gs= gs + labs(x= "Age (days)", y= "Escape hatching success \n (proportion hatched eggs)") 
-gs= gs + theme_bw(base_size = 11, base_family = "Times")
-gs= gs + annotate("text", x = 3.65, y = 1, label = "(a) A. spurrelli", fontface= "italic")
-gs= gs + scale_x_continuous(breaks= pretty_breaks(n=2)) # allows for making "pretty" breaks on x axis... only showing 4 and 5 values...
-gs= gs + scale_y_continuous(breaks= pretty_breaks(n=5)) # allows for making "pretty" breaks on y axis... shows 5 breaks
-gs= gs + geom_text(aes(y = 0.03, label = sps$sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
+gs= ggplot(data=sps, aes(x=age, y=mean_survival)) + 
+  geom_bar(stat="identity", fill= "black") +
+  geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") +
+  labs(x= "Age (days)", y= "Escape hatching success \n (proportion hatched eggs)") +
+  theme_bw(base_size = 11, base_family = "Times") +
+  annotate("text", x = 3.65, y = 1, label = "(a) A. spurrelli", fontface= "italic") +
+  scale_x_continuous(breaks= pretty_breaks(n=2)) + # allows for making "pretty" breaks on x axis... only showing 4 and 5 values...
+  scale_y_continuous(breaks= pretty_breaks(n=5)) +# allows for making "pretty" breaks on y axis... shows 5 breaks
+  geom_text(aes(y = 0.03, label = sps$sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
 gs
 
 library(grid)
@@ -428,24 +432,24 @@ fps
 library(scales)
 library(ggplot2)
 
-gc= ggplot(data=fpc, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black") #use barplots w/age filled all black
-gc= gc + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") #black error bars
-gc= gc + labs(x= "Age (days)", y= "Hatching survival \n (proportion)") #make labels for axis
-gc= gc + theme_bw(base_size = 11, base_family = "Times") #make theme in Times New Roman and b/w
-gc= gc + annotate("text", x = 4.8, y = 0.80, label = "(b) A. callidryas", fontface= "italic") #add italicized text (species name) to figure!
-gc= gc + scale_y_continuous(breaks= pretty_breaks(n=5)) # allows for making "pretty" breaks on y axis... shows 5 breaks
-gc= gc + geom_text(aes(y = 0.03, label = sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
+gc= ggplot(data=fpc, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black") + #use barplots w/age filled all black
+  geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") +#black error bars
+  labs(x= "Age (days)", y= "Hatching survival \n (proportion)") + #make labels for axis
+  theme_bw(base_size = 11, base_family = "Times") + #make theme in Times New Roman and b/w
+  annotate("text", x = 4.8, y = 0.80, label = "(b) A. callidryas", fontface= "italic") + #add italicized text (species name) to figure!
+  scale_y_continuous(breaks= pretty_breaks(n=5)) + # allows for making "pretty" breaks on y axis... shows 5 breaks
+  geom_text(aes(y = 0.03, label = sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
 gc
 
 #and again same for spurrelli
-gs= ggplot(data=fps, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black")
-gs= gs + geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") 
-gs= gs + labs(x= "Age (days)", y= "Hatching survival \n (proportion)") 
-gs= gs + theme_bw(base_size = 11, base_family = "Times")
-gs= gs + annotate("text", x = 5.65, y = 0.80, label = "(a) A. spurrelli", fontface= "italic")
-gs= gs + scale_x_continuous(breaks= pretty_breaks(n=2)) # allows for making "pretty" breaks on x axis... only showing 4 and 5 values...
-gs= gs + scale_y_continuous(breaks= pretty_breaks(n=5)) # allows for making "pretty" breaks on y axis... shows 5 breaks
-gs= gs + geom_text(aes(y = 0.03, label = sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
+gs= ggplot(data=fps, aes(x=age, y=mean_survival)) + geom_bar(stat="identity", fill= "black") +
+  geom_errorbar(aes(ymin=mean_survival-SE, ymax=mean_survival+SE), width=.2, position=position_dodge(.9), color="black") +
+  labs(x= "Age (days)", y= "Hatching survival \n (proportion)") +
+  theme_bw(base_size = 11, base_family = "Times") +
+  annotate("text", x = 5.65, y = 0.80, label = "(a) A. spurrelli", fontface= "italic") +
+  scale_x_continuous(breaks= pretty_breaks(n=2)) + # allows for making "pretty" breaks on x axis... only showing 4 and 5 values...
+  scale_y_continuous(breaks= pretty_breaks(n=5)) + # allows for making "pretty" breaks on y axis... shows 5 breaks
+  geom_text(aes(y = 0.03, label = sample_size), color= "white", vjust = 0) # add white numbers of the sample sizes for each age
 gs
 
 library(grid)
@@ -474,3 +478,5 @@ Thats all I have for you Chris! Thanks for a great class. I sure learned a lot a
 Cheers,
 
 Brandon
+
+(all photographs taken and owned by B. Güell)
